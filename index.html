@@ -21,16 +21,21 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
 .ok{background:#E8F7F0;color:var(--verde);border:1px solid #BFE8D6}
 .err{background:#FDECEC;color:#D64545;border:1px solid #F0C4C4}
 .foot{text-align:center;color:var(--suave);font-size:12px;padding:10px}
+.req{color:#D64545}
 </style></head><body>
 <div class="wrap">
   <div class="top">
     <h1>⚖️ Carga de juicio</h1>
-    <p>Completá y actualizá los datos del expediente. Al guardar, la información llega directo al estudio.</p>
+    <p id="sub">Completá los datos del expediente. Al guardar, la información llega directo al estudio.</p>
     <div class="badge" id="emp">Cargando…</div>
   </div>
   <div id="msg" class="msg"></div>
   <div class="card" id="form" style="display:none">
-    <label>Actor (Apellido y Nombre)</label>
+    <div id="empresa_wrap" style="display:none">
+      <label>Empresa <span class="req">*</span></label>
+      <select id="empresa_id"></select>
+    </div>
+    <label>Actor (Apellido y Nombre) <span class="req">*</span></label>
     <input id="actor">
     <div class="row">
       <div><label>Categoría</label><select id="categoria"></select></div>
@@ -58,7 +63,9 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
 </div>
 <script>
 var FN = "https://zpwccecovhjmeibxafkg.supabase.co/functions/v1/juicio-abogado";
-var TOKEN = new URLSearchParams(location.search).get("token") || "";
+var P = new URLSearchParams(location.search);
+var TOKEN = P.get("token") || "";
+var NUEVO = P.get("nuevo") || "";  // clave del formulario de alta
 function el(id){return document.getElementById(id)}
 function showMsg(txt, ok){var m=el("msg");m.textContent=txt;m.className="msg "+(ok?"ok":"err");m.style.display="block"}
 function opts(sel, arr, val){
@@ -67,31 +74,60 @@ function opts(sel, arr, val){
   if(val){sel.value=val}
 }
 var CAMPOS=["actor","categoria","anio","etapa","nro_expediente","prob_perdida","juzgado","monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado","abogado","notas"];
-function cargar(){
-  if(!TOKEN){showMsg("Link inválido: falta el token.",false);return}
+
+function llenarCat(cat){
+  opts(el("categoria"), cat.categorias, "");
+  opts(el("etapa"), cat.etapas, "");
+  opts(el("prob_perdida"), [""].concat(cat.probs), "");
+}
+
+function modoEditar(){
   fetch(FN+"?data=1&token="+encodeURIComponent(TOKEN)).then(function(r){return r.json()}).then(function(d){
     if(d.error){showMsg("No se pudo abrir el juicio: "+d.error,false);return}
     var j=d.juicio;
     el("emp").textContent="Empresa: "+d.empresa+"  ·  Juicio Nº "+(j.nro||"-");
-    opts(el("categoria"), d.catalogos.categorias, j.categoria);
-    opts(el("etapa"), d.catalogos.etapas, j.etapa);
-    var probs=[""].concat(d.catalogos.probs); opts(el("prob_perdida"), probs, j.prob_perdida||"");
+    llenarCat(d.catalogos);
+    el("categoria").value=j.categoria||""; el("etapa").value=j.etapa||""; el("prob_perdida").value=j.prob_perdida||"";
     for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e&&e.tagName!=="SELECT"){e.value=(j[k]==null?"":j[k])}}
     el("form").style.display="block";
     if(j.estado_carga==="completado"){showMsg("Este juicio ya fue enviado. Podés seguir editándolo y volver a guardar.",true)}
   }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
 }
+
+function modoNuevo(){
+  el("sub").textContent="Cargá un juicio nuevo. Elegí la empresa y completá los datos.";
+  fetch(FN+"?meta=1&clave="+encodeURIComponent(NUEVO)).then(function(r){return r.json()}).then(function(d){
+    if(d.error){showMsg("Link inválido: "+d.error,false);return}
+    el("emp").textContent="Nuevo juicio";
+    el("empresa_wrap").style.display="block";
+    var sel=el("empresa_id"); sel.innerHTML="";
+    var ph=document.createElement("option"); ph.value=""; ph.textContent="— elegí una empresa —"; sel.appendChild(ph);
+    for(var i=0;i<d.empresas.length;i++){var o=document.createElement("option");o.value=d.empresas[i].id;o.textContent=d.empresas[i].razon_social;sel.appendChild(o)}
+    llenarCat(d.catalogos);
+    el("form").style.display="block";
+  }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
+}
+
 el("save").onclick=function(){
-  var body={token:TOKEN};
+  var body={};
+  if(NUEVO){ body.nuevo=true; body.clave=NUEVO; body.empresa_id=el("empresa_id").value;
+    if(!body.empresa_id){showMsg("Elegí una empresa.",false);return} }
+  else { body.token=TOKEN; }
+  if(!el("actor").value.trim()){showMsg("Ingresá el Actor (Apellido y Nombre).",false);return}
   for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e){body[k]=e.value}}
   el("save").disabled=true;el("save").textContent="Guardando…";
   fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){return r.json()}).then(function(d){
-      if(d.ok){showMsg("✓ Guardado. ¡Gracias! El estudio ya recibió la información.",true);window.scrollTo(0,0)}
-      else{showMsg("No se pudo guardar: "+(d.error||"error"),false)}
+      if(d.ok){
+        showMsg("✓ Guardado. ¡Gracias! El estudio ya recibió la información.",true);window.scrollTo(0,0);
+        if(NUEVO){ el("form").style.display="none"; }
+      } else {showMsg("No se pudo guardar: "+(d.error||"error"),false)}
     }).catch(function(){showMsg("Error de conexión al guardar.",false)})
     .then(function(){el("save").disabled=false;el("save").textContent="Guardar"});
 };
-cargar();
+
+if(TOKEN){ modoEditar(); }
+else if(NUEVO){ modoNuevo(); }
+else { showMsg("Link inválido: falta el parámetro de acceso.",false); }
 </script>
 </body></html>
