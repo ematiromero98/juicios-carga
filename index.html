@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carga de juicio — MR & Asociados</title>
+<style>
+:root{--navy:#1F4E79;--celeste:#5DADE2;--fondo:#F5F7FA;--card:#fff;--borde:#E6EAF0;--texto:#1E293B;--suave:#64748B;--verde:#1E9E6A}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--fondo);color:var(--texto)}
+.wrap{max-width:680px;margin:0 auto;padding:18px}
+.top{background:var(--navy);color:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px}
+.top h1{margin:0 0 4px;font-size:18px}.top p{margin:0;opacity:.85;font-size:13px}
+.badge{display:inline-block;background:rgba(255,255,255,.15);border-radius:8px;padding:3px 10px;font-size:12px;margin-top:8px}
+.card{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:18px;margin-bottom:14px}
+label{display:block;font-size:12px;font-weight:700;color:var(--suave);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.3px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--borde);border-radius:9px;font-size:15px;background:#fff;color:var(--texto)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--celeste);box-shadow:0 0 0 3px rgba(93,173,226,.15)}
+textarea{min-height:80px;resize:vertical}
+.row{display:flex;gap:12px}.row>div{flex:1}
+button{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px}
+button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
+.msg{padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:14px;display:none}
+.ok{background:#E8F7F0;color:var(--verde);border:1px solid #BFE8D6}
+.err{background:#FDECEC;color:#D64545;border:1px solid #F0C4C4}
+.foot{text-align:center;color:var(--suave);font-size:12px;padding:10px}
+</style></head><body>
+<div class="wrap">
+  <div class="top">
+    <h1>⚖️ Carga de juicio</h1>
+    <p>Completá y actualizá los datos del expediente. Al guardar, la información llega directo al estudio.</p>
+    <div class="badge" id="emp">Cargando…</div>
+  </div>
+  <div id="msg" class="msg"></div>
+  <div class="card" id="form" style="display:none">
+    <label>Actor (Apellido y Nombre)</label>
+    <input id="actor">
+    <div class="row">
+      <div><label>Categoría</label><select id="categoria"></select></div>
+      <div><label>Año</label><input id="anio" type="number" inputmode="numeric"></div>
+    </div>
+    <label>Estado / Etapa procesal</label><select id="etapa"></select>
+    <div class="row">
+      <div><label>Nº Expediente</label><input id="nro_expediente"></div>
+      <div><label>Prob. de pérdida</label><select id="prob_perdida"></select></div>
+    </div>
+    <label>Juzgado / Fuero</label><input id="juzgado">
+    <div class="row">
+      <div><label>Monto demandado ($)</label><input id="monto_demandado" type="number" step="0.01" inputmode="decimal"></div>
+      <div><label>Intereses de sentencia ($)</label><input id="intereses_sentencia" type="number" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="row">
+      <div><label>Ofrecimiento ($)</label><input id="ofrecimiento" type="number" step="0.01" inputmode="decimal"></div>
+      <div><label>Monto acordado ($)</label><input id="monto_acordado" type="number" step="0.01" inputmode="decimal"></div>
+    </div>
+    <label>Abogado patrocinante</label><input id="abogado">
+    <label>Notas</label><textarea id="notas"></textarea>
+    <button id="save">Guardar</button>
+  </div>
+  <div class="foot">MR &amp; Asociados — Control de Juicios</div>
+</div>
+<script>
+var FN = "https://zpwccecovhjmeibxafkg.supabase.co/functions/v1/juicio-abogado";
+var TOKEN = new URLSearchParams(location.search).get("token") || "";
+function el(id){return document.getElementById(id)}
+function showMsg(txt, ok){var m=el("msg");m.textContent=txt;m.className="msg "+(ok?"ok":"err");m.style.display="block"}
+function opts(sel, arr, val){
+  sel.innerHTML="";
+  for(var i=0;i<arr.length;i++){var o=document.createElement("option");o.value=arr[i];o.textContent=arr[i];sel.appendChild(o)}
+  if(val){sel.value=val}
+}
+var CAMPOS=["actor","categoria","anio","etapa","nro_expediente","prob_perdida","juzgado","monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado","abogado","notas"];
+function cargar(){
+  if(!TOKEN){showMsg("Link inválido: falta el token.",false);return}
+  fetch(FN+"?data=1&token="+encodeURIComponent(TOKEN)).then(function(r){return r.json()}).then(function(d){
+    if(d.error){showMsg("No se pudo abrir el juicio: "+d.error,false);return}
+    var j=d.juicio;
+    el("emp").textContent="Empresa: "+d.empresa+"  ·  Juicio Nº "+(j.nro||"-");
+    opts(el("categoria"), d.catalogos.categorias, j.categoria);
+    opts(el("etapa"), d.catalogos.etapas, j.etapa);
+    var probs=[""].concat(d.catalogos.probs); opts(el("prob_perdida"), probs, j.prob_perdida||"");
+    for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e&&e.tagName!=="SELECT"){e.value=(j[k]==null?"":j[k])}}
+    el("form").style.display="block";
+    if(j.estado_carga==="completado"){showMsg("Este juicio ya fue enviado. Podés seguir editándolo y volver a guardar.",true)}
+  }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
+}
+el("save").onclick=function(){
+  var body={token:TOKEN};
+  for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e){body[k]=e.value}}
+  el("save").disabled=true;el("save").textContent="Guardando…";
+  fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.ok){showMsg("✓ Guardado. ¡Gracias! El estudio ya recibió la información.",true);window.scrollTo(0,0)}
+      else{showMsg("No se pudo guardar: "+(d.error||"error"),false)}
+    }).catch(function(){showMsg("Error de conexión al guardar.",false)})
+    .then(function(){el("save").disabled=false;el("save").textContent="Guardar"});
+};
+cargar();
+</script>
+</body></html>
