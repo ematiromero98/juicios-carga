@@ -160,13 +160,18 @@ function leerMonto(s){
 function fmtMonto(n){
   return n.toLocaleString("es-AR",{minimumFractionDigits:(n%1?2:0),maximumFractionDigits:2});
 }
-function verMonto(k){
+// Mientras escribe no marca error (a mitad de "3.200.000" todavía no cierra);
+// el aviso rojo aparece al salir del campo o al guardar.
+function verMonto(k, escribiendo){
   var v=leerMonto(el(k).value), p=el("prev_"+k);
-  if(v===null){p.textContent="";p.className="prev"}
+  if(v===null || (escribiendo && isNaN(v))){p.textContent="";p.className="prev"}
   else if(isNaN(v)){p.textContent="⚠ No se entiende el monto (ej: 1.500.000,50)";p.className="prev mal"}
   else {p.textContent="Se guarda: $ "+fmtMonto(v);p.className="prev"}
 }
-for(var m=0;m<MONTOS.length;m++){(function(k){el(k).addEventListener("input",function(){verMonto(k)})})(MONTOS[m])}
+for(var m=0;m<MONTOS.length;m++){(function(k){
+  el(k).addEventListener("input",function(){verMonto(k,true)});
+  el(k).addEventListener("blur",function(){verMonto(k)});
+})(MONTOS[m])}
 
 function llenarCat(cat){
   opts(el("categoria"), cat.categorias, "");
