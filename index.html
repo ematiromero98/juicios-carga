@@ -22,6 +22,8 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
 .err{background:#FDECEC;color:#D64545;border:1px solid #F0C4C4}
 .foot{text-align:center;color:var(--suave);font-size:12px;padding:10px}
 .req{color:#D64545}
+.prev{display:block;font-size:12px;color:var(--suave);margin-top:4px;min-height:15px}
+.prev.mal{color:#D64545}
 </style></head><body>
 <div class="wrap">
   <div class="top">
@@ -48,12 +50,12 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
     </div>
     <label>Juzgado / Fuero</label><input id="juzgado">
     <div class="row">
-      <div><label>Monto demandado ($)</label><input id="monto_demandado" type="number" step="0.01" inputmode="decimal"></div>
-      <div><label>Intereses de sentencia ($)</label><input id="intereses_sentencia" type="number" step="0.01" inputmode="decimal"></div>
+      <div><label>Monto demandado ($)</label><input id="monto_demandado" class="monto" inputmode="decimal" placeholder="Ej: 1.500.000,50"><small class="prev" id="prev_monto_demandado"></small></div>
+      <div><label>Intereses de sentencia ($)</label><input id="intereses_sentencia" class="monto" inputmode="decimal"><small class="prev" id="prev_intereses_sentencia"></small></div>
     </div>
     <div class="row">
-      <div><label>Ofrecimiento ($)</label><input id="ofrecimiento" type="number" step="0.01" inputmode="decimal"></div>
-      <div><label>Monto acordado ($)</label><input id="monto_acordado" type="number" step="0.01" inputmode="decimal"></div>
+      <div><label>Ofrecimiento ($)</label><input id="ofrecimiento" class="monto" inputmode="decimal"><small class="prev" id="prev_ofrecimiento"></small></div>
+      <div><label>Monto acordado ($)</label><input id="monto_acordado" class="monto" inputmode="decimal"><small class="prev" id="prev_monto_acordado"></small></div>
     </div>
     <label>Abogado patrocinante</label><input id="abogado">
     <label>Notas</label><textarea id="notas"></textarea>
@@ -74,6 +76,40 @@ function opts(sel, arr, val){
   if(val){sel.value=val}
 }
 var CAMPOS=["actor","categoria","anio","etapa","nro_expediente","prob_perdida","juzgado","monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado","abogado","notas"];
+var MONTOS=["monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado"];
+
+// Lee un monto escrito a la argentina: "1.500.000,50", "1500000,50", "1.500" (=1500),
+// "1500.50" (decimal con punto). Devuelve null si está vacío y NaN si no se entiende.
+function leerMonto(s){
+  s=String(s||"").replace(/[\s$]/g,"");
+  if(s==="") return null;
+  if(!/^[\d.,]+$/.test(s)) return NaN;
+  var ent=s, dec="";
+  if(s.indexOf(",")>=0){
+    var p=s.split(","); if(p.length>2) return NaN;
+    ent=p[0]; dec=p[1];
+    if(ent.indexOf(".")>=0 && !/^\d{1,3}(\.\d{3})+$/.test(ent)) return NaN;
+    ent=ent.replace(/\./g,"");
+  } else if(s.indexOf(".")>=0){
+    var d=s.split(".");
+    if(d.length>2 || /^\d{1,3}\.\d{3}$/.test(s)){     // puntos de miles
+      if(!/^\d{1,3}(\.\d{3})+$/.test(s)) return NaN;
+      ent=s.replace(/\./g,"");
+    } else { ent=d[0]; dec=d[1]; }                     // punto decimal
+  }
+  if(!/^\d+$/.test(ent) || !/^\d{0,2}$/.test(dec)) return NaN;
+  return Math.round(parseFloat(ent+"."+(dec||"0"))*100)/100;
+}
+function fmtMonto(n){
+  return n.toLocaleString("es-AR",{minimumFractionDigits:(n%1?2:0),maximumFractionDigits:2});
+}
+function verMonto(k){
+  var v=leerMonto(el(k).value), p=el("prev_"+k);
+  if(v===null){p.textContent="";p.className="prev"}
+  else if(isNaN(v)){p.textContent="⚠ No se entiende el monto (ej: 1.500.000,50)";p.className="prev mal"}
+  else {p.textContent="Se guarda: $ "+fmtMonto(v);p.className="prev"}
+}
+for(var m=0;m<MONTOS.length;m++){(function(k){el(k).addEventListener("input",function(){verMonto(k)})})(MONTOS[m])}
 
 function llenarCat(cat){
   opts(el("categoria"), cat.categorias, "");
@@ -89,6 +125,7 @@ function modoEditar(){
     llenarCat(d.catalogos);
     el("categoria").value=j.categoria||""; el("etapa").value=j.etapa||""; el("prob_perdida").value=j.prob_perdida||"";
     for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e&&e.tagName!=="SELECT"){e.value=(j[k]==null?"":j[k])}}
+    for(var m=0;m<MONTOS.length;m++){var k2=MONTOS[m];var n=Number(j[k2]||0);el(k2).value=n?fmtMonto(n):"";verMonto(k2)}
     el("form").style.display="block";
     if(j.estado_carga==="completado"){showMsg("Este juicio ya fue enviado. Podés seguir editándolo y volver a guardar.",true)}
   }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
@@ -114,7 +151,12 @@ el("save").onclick=function(){
     if(!body.empresa_id){showMsg("Elegí una empresa.",false);return} }
   else { body.token=TOKEN; }
   if(!el("actor").value.trim()){showMsg("Ingresá el Actor (Apellido y Nombre).",false);return}
+  var anio=el("anio").value.trim();
+  if(anio && !(/^\d{4}$/.test(anio) && +anio>=1900 && +anio<=2100)){showMsg("El año tiene que ser de 4 cifras (ej: 2024).",false);el("anio").focus();return}
   for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e){body[k]=e.value}}
+  for(var m=0;m<MONTOS.length;m++){var k2=MONTOS[m];var v=leerMonto(el(k2).value);
+    if(v!==null && isNaN(v)){showMsg("Revisá el monto marcado en rojo (ej: 1.500.000,50).",false);verMonto(k2);el(k2).focus();return}
+    body[k2]=(v===null?"":String(v))}
   el("save").disabled=true;el("save").textContent="Guardando…";
   fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){return r.json()}).then(function(d){
