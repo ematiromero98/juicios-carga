@@ -49,8 +49,8 @@ textarea{resize:vertical;min-height:70px}
 .h2{font-size:15px;font-weight:700;margin:16px 0 8px}
 .titulo{font-size:20px;font-weight:700;margin:6px 0 4px}
 .suave{color:var(--suave)}
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-.kpi{padding:12px 16px}.kpi .v{font-family:var(--mono);font-size:24px;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
+.kpi{padding:12px 16px;min-width:0}.kpi .v{font-family:var(--mono);font-size:clamp(16px,1.35vw,21px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi .l{color:var(--suave);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .kpi.navy{background:var(--navy);border-color:var(--navy)}.kpi.navy .v{color:#fff}.kpi.navy .l{color:#CFE0F2}
 /* tablas */
@@ -63,7 +63,7 @@ td{padding:6px 8px;border-bottom:1px solid var(--borde);white-space:nowrap}
 .tl th{cursor:pointer;user-select:none}.tl th:hover{color:var(--texto)}
 .der{text-align:right}.cen{text-align:center}.neg td{font-weight:700}
 td.trunc{max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.dash td,.dash th{white-space:normal}
+.dash td,.dash th{white-space:normal}.dash td.der{white-space:nowrap}
 /* gráficos */
 .graf{padding:14px}
 .hb{display:grid;grid-template-columns:130px 1fr 78px;align-items:center;gap:8px;height:30px;font-size:12px}
@@ -77,7 +77,7 @@ td.trunc{max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .vb .vl{margin-bottom:2px;white-space:nowrap}.vb .lb{color:var(--suave);height:24px;padding-top:4px}
 /* listado */
 .filtros{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px}
-.filtros label{color:var(--texto);font-size:13px}
+.filtros label{color:var(--texto);font-size:13px}.fl{display:inline-flex;align-items:center;gap:6px}
 .filtros select{width:auto;min-width:110px}.filtros .buscar{flex:1;min-width:200px}
 .acciones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .acciones .esp{flex:1}
@@ -112,7 +112,10 @@ pre.msg{white-space:pre-wrap;background:var(--card);border:1px solid var(--borde
   #topbar button{background:none;border:none;color:#fff;font-size:22px;cursor:pointer}
   #topbar .t{color:#fff;font-weight:700}
   .pagina{padding:12px}
+  .filtros{display:grid;grid-template-columns:1fr 1fr}.fl{flex-direction:column;align-items:stretch;gap:3px}.fl label{color:var(--suave);font-size:12px}
+  .fl{min-width:0}.filtros select{min-width:0;width:100%}.filtros .buscar{grid-column:1/-1;min-width:0}
   .kpis{grid-template-columns:repeat(2,1fr)}
+  .kpi .v{font-size:19px}
   .form{grid-template-columns:1fr}.form>label{text-align:left;margin-bottom:-4px;color:var(--suave);font-size:12.5px}
   #p_juicios .tw{max-height:none}
   .hb{grid-template-columns:90px 1fr 70px}
@@ -163,12 +166,12 @@ pre.msg{white-space:pre-wrap;background:var(--card);border:1px solid var(--borde
     <!-- Juicios -->
     <section id="p_juicios" class="pagina oculto">
       <div class="card filtros">
-        <label>Empresa:</label><select id="f_empresa"></select>
-        <label>Categoría:</label><select id="f_categoria"></select>
-        <label>Etapa:</label><select id="f_etapa"></select>
-        <label>Estado:</label><select id="f_estado"><option>Todos</option><option>Activos</option><option>Finalizados</option></select>
-        <label>Año:</label><select id="f_anio"></select>
-        <label>Carga:</label><select id="f_carga"><option>Toda carga</option><option>✓ Cargado x abogado</option><option>Pendiente</option></select>
+        <span class="fl"><label>Empresa:</label><select id="f_empresa"></select></span>
+        <span class="fl"><label>Categoría:</label><select id="f_categoria"></select></span>
+        <span class="fl"><label>Etapa:</label><select id="f_etapa"></select></span>
+        <span class="fl"><label>Estado:</label><select id="f_estado"><option>Todos</option><option>Activos</option><option>Finalizados</option></select></span>
+        <span class="fl"><label>Año:</label><select id="f_anio"></select></span>
+        <span class="fl"><label>Carga:</label><select id="f_carga"><option>Toda carga</option><option>✓ Cargado x abogado</option><option>Pendiente</option></select></span>
         <input id="f_buscar" class="buscar" placeholder="🔍  Buscar actor / expediente…" type="search">
       </div>
       <div class="acciones">
