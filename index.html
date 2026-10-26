@@ -1,14 +1,15 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Carga de juicio — MR & Asociados</title>
+<title>Carga de juicios — MR & Asociados</title>
 <style>
 :root{--navy:#1F4E79;--celeste:#5DADE2;--fondo:#F5F7FA;--card:#fff;--borde:#E6EAF0;--texto:#1E293B;--suave:#64748B;--verde:#1E9E6A}
 *{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--fondo);color:var(--texto)}
 .wrap{max-width:680px;margin:0 auto;padding:18px}
-.top{background:var(--navy);color:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px}
+.top{background:var(--navy);color:#fff;border-radius:14px;padding:18px 20px;margin-bottom:16px;position:relative}
 .top h1{margin:0 0 4px;font-size:18px}.top p{margin:0;opacity:.85;font-size:13px}
 .badge{display:inline-block;background:rgba(255,255,255,.15);border-radius:8px;padding:3px 10px;font-size:12px;margin-top:8px}
+.salir{position:absolute;top:14px;right:14px;width:auto;margin:0;padding:6px 12px;font-size:13px;background:rgba(255,255,255,.15);display:none}
 .card{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:18px;margin-bottom:14px}
 label{display:block;font-size:12px;font-weight:700;color:var(--suave);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.3px}
 input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--borde);border-radius:9px;font-size:15px;background:#fff;color:var(--texto)}
@@ -17,6 +18,8 @@ textarea{min-height:80px;resize:vertical}
 .row{display:flex;gap:12px}.row>div{flex:1}
 button{width:100%;background:var(--navy);color:#fff;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px}
 button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
+button.sec{background:#fff;color:var(--navy);border:1px solid var(--borde)}
+button.sec:hover{background:#EEF4FA}
 .msg{padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:14px;display:none}
 .ok{background:#E8F7F0;color:var(--verde);border:1px solid #BFE8D6}
 .err{background:#FDECEC;color:#D64545;border:1px solid #F0C4C4}
@@ -24,15 +27,50 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
 .req{color:#D64545}
 .prev{display:block;font-size:12px;color:var(--suave);margin-top:4px;min-height:15px}
 .prev.mal{color:#D64545}
+.vista{display:none}
+.menu button{display:flex;align-items:center;gap:12px;text-align:left;font-size:17px;padding:16px 18px}
+.menu button small{display:block;font-weight:400;font-size:13px;opacity:.8}
+.item{border:1px solid var(--borde);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;background:#fff}
+.item:hover{border-color:var(--celeste)}
+.item .l1{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.item .l2{font-size:13px;color:var(--suave);margin-top:4px}
+.chip{display:inline-block;font-size:11px;font-weight:700;border-radius:20px;padding:2px 9px;background:#EEF4FA;color:var(--navy)}
+.vacio{text-align:center;color:var(--suave);padding:20px 0}
+.volver{background:none;color:var(--navy);width:auto;padding:4px 0;margin:0 0 6px;font-size:14px}
+.volver:hover{background:none;text-decoration:underline}
+@media (max-width:480px){.row{flex-direction:column;gap:0}}
 </style></head><body>
 <div class="wrap">
   <div class="top">
-    <h1>⚖️ Carga de juicio</h1>
-    <p id="sub">Completá los datos del expediente. Al guardar, la información llega directo al estudio.</p>
+    <h1>⚖️ Carga de juicios</h1>
+    <p id="sub">MR &amp; Asociados — Control de Juicios</p>
     <div class="badge" id="emp">Cargando…</div>
+    <button class="salir" id="btn_salir">Salir</button>
   </div>
   <div id="msg" class="msg"></div>
-  <div class="card" id="form" style="display:none">
+
+  <!-- 1. Ingreso -->
+  <div class="card vista" id="v_login">
+    <label>Usuario</label><input id="usuario" autocomplete="username" autocapitalize="none" spellcheck="false">
+    <label>Clave</label><input id="clave" type="password" autocomplete="current-password">
+    <button id="btn_login">Ingresar</button>
+  </div>
+
+  <!-- 2. Menú -->
+  <div class="vista menu" id="v_menu">
+    <button id="btn_nuevo">➕ <span>Cargar un juicio nuevo<small>Completá los datos del expediente</small></span></button>
+    <button class="sec" id="btn_mios">📋 <span>Ver mis juicios<small>Los que ya cargaste. Tocá uno para corregirlo</small></span></button>
+  </div>
+
+  <!-- 3. Mis juicios -->
+  <div class="card vista" id="v_lista">
+    <button class="volver" data-volver>← Volver</button>
+    <div id="lista"></div>
+  </div>
+
+  <!-- 4. Formulario -->
+  <div class="card vista" id="v_form">
+    <button class="volver" data-volver id="form_volver">← Volver</button>
     <div id="empresa_wrap" style="display:none">
       <label>Empresa <span class="req">*</span></label>
       <select id="empresa_id"></select>
@@ -41,7 +79,7 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
     <input id="actor">
     <div class="row">
       <div><label>Categoría</label><select id="categoria"></select></div>
-      <div><label>Año</label><input id="anio" type="number" inputmode="numeric"></div>
+      <div><label>Año</label><input id="anio" inputmode="numeric" maxlength="4"></div>
     </div>
     <label>Estado / Etapa procesal</label><select id="etapa"></select>
     <div class="row">
@@ -66,17 +104,36 @@ button:hover{background:#2E6DA4}button:disabled{background:#9db4cc}
 <script>
 var FN = "https://zpwccecovhjmeibxafkg.supabase.co/functions/v1/juicio-abogado";
 var P = new URLSearchParams(location.search);
-var TOKEN = P.get("token") || "";
-var NUEVO = P.get("nuevo") || "";  // clave del formulario de alta
+var TOKEN = P.get("token") || "";   // link puntual de un juicio (sin login)
+var SES_KEY = "juicios_sesion";
+var CAMPOS=["actor","categoria","anio","etapa","nro_expediente","prob_perdida","juzgado","monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado","abogado","notas"];
+var MONTOS=["monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado"];
+var META=null, EDIT_ID=null, MIOS=[];
+
 function el(id){return document.getElementById(id)}
-function showMsg(txt, ok){var m=el("msg");m.textContent=txt;m.className="msg "+(ok?"ok":"err");m.style.display="block"}
+function showMsg(txt, ok){var m=el("msg");m.textContent=txt;m.className="msg "+(ok?"ok":"err");m.style.display="block";window.scrollTo(0,0)}
+function hideMsg(){el("msg").style.display="none"}
+function ver(id){var v=document.querySelectorAll(".vista");for(var i=0;i<v.length;i++){v[i].style.display=(v[i].id===id?"block":"none")}}
+function leerSes(){try{return localStorage.getItem(SES_KEY)||""}catch(e){return ""}}
+function guardarSes(s){try{s?localStorage.setItem(SES_KEY,s):localStorage.removeItem(SES_KEY)}catch(e){}}
+var SESION=leerSes();
+
+function api(body){
+  return fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+    .then(function(r){return r.json()});
+}
+function conSesion(body){
+  body.sesion=SESION;
+  return api(body).then(function(d){
+    if(d.sesion_vencida){guardarSes("");SESION="";irLogin();showMsg(d.error,false);throw "vencida"}
+    return d;
+  });
+}
 function opts(sel, arr, val){
   sel.innerHTML="";
   for(var i=0;i<arr.length;i++){var o=document.createElement("option");o.value=arr[i];o.textContent=arr[i];sel.appendChild(o)}
   if(val){sel.value=val}
 }
-var CAMPOS=["actor","categoria","anio","etapa","nro_expediente","prob_perdida","juzgado","monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado","abogado","notas"];
-var MONTOS=["monto_demandado","intereses_sentencia","ofrecimiento","monto_acordado"];
 
 // Lee un monto escrito a la argentina: "1.500.000,50", "1500000,50", "1.500" (=1500),
 // "1500.50" (decimal con punto). Devuelve null si está vacío y NaN si no se entiende.
@@ -116,60 +173,140 @@ function llenarCat(cat){
   opts(el("etapa"), cat.etapas, "");
   opts(el("prob_perdida"), [""].concat(cat.probs), "");
 }
-
-function modoEditar(){
-  fetch(FN+"?data=1&token="+encodeURIComponent(TOKEN)).then(function(r){return r.json()}).then(function(d){
-    if(d.error){showMsg("No se pudo abrir el juicio: "+d.error,false);return}
-    var j=d.juicio;
-    el("emp").textContent="Empresa: "+d.empresa+"  ·  Juicio Nº "+(j.nro||"-");
-    llenarCat(d.catalogos);
-    el("categoria").value=j.categoria||""; el("etapa").value=j.etapa||""; el("prob_perdida").value=j.prob_perdida||"";
-    for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e&&e.tagName!=="SELECT"){e.value=(j[k]==null?"":j[k])}}
-    for(var m=0;m<MONTOS.length;m++){var k2=MONTOS[m];var n=Number(j[k2]||0);el(k2).value=n?fmtMonto(n):"";verMonto(k2)}
-    el("form").style.display="block";
-    if(j.estado_carga==="completado"){showMsg("Este juicio ya fue enviado. Podés seguir editándolo y volver a guardar.",true)}
-  }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
+function llenarForm(j){
+  el("categoria").value=j.categoria||el("categoria").options[0].value;
+  el("etapa").value=j.etapa||el("etapa").options[0].value;
+  el("prob_perdida").value=j.prob_perdida||"";
+  for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e&&e.tagName!=="SELECT"){e.value=(j[k]==null?"":j[k])}}
+  for(var m=0;m<MONTOS.length;m++){var k2=MONTOS[m];var n=Number(j[k2]||0);el(k2).value=n?fmtMonto(n):"";verMonto(k2)}
+}
+// Valida y arma el cuerpo con los campos del formulario. null si hay un error.
+function leerForm(){
+  if(!el("actor").value.trim()){showMsg("Ingresá el Actor (Apellido y Nombre).",false);el("actor").focus();return null}
+  var anio=el("anio").value.trim();
+  if(anio && !(/^\d{4}$/.test(anio) && +anio>=1900 && +anio<=2100)){showMsg("El año tiene que ser de 4 cifras (ej: 2024).",false);el("anio").focus();return null}
+  var body={};
+  for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e){body[k]=e.value}}
+  for(var m=0;m<MONTOS.length;m++){var k2=MONTOS[m];var v=leerMonto(el(k2).value);
+    if(v!==null && isNaN(v)){showMsg("Revisá el monto marcado en rojo (ej: 1.500.000,50).",false);verMonto(k2);el(k2).focus();return null}
+    body[k2]=(v===null?"":String(v))}
+  return body;
 }
 
-function modoNuevo(){
-  el("sub").textContent="Cargá un juicio nuevo. Elegí la empresa y completá los datos.";
-  fetch(FN+"?meta=1&clave="+encodeURIComponent(NUEVO)).then(function(r){return r.json()}).then(function(d){
-    if(d.error){showMsg("Link inválido: "+d.error,false);return}
-    el("emp").textContent="Nuevo juicio";
-    el("empresa_wrap").style.display="block";
+// ---------- con usuario y clave ----------
+function irLogin(){
+  el("emp").textContent="Ingresá con tu usuario y clave";
+  el("btn_salir").style.display="none";
+  ver("v_login");
+}
+function irMenu(){
+  el("btn_salir").style.display="block";
+  el("emp").textContent="👤 "+(META?META.nombre:"");
+  ver("v_menu");
+}
+function cargarMeta(){
+  return conSesion({accion:"meta"}).then(function(d){
+    if(d.error){showMsg(d.error,false);return}
+    META=d;
     var sel=el("empresa_id"); sel.innerHTML="";
     var ph=document.createElement("option"); ph.value=""; ph.textContent="— elegí una empresa —"; sel.appendChild(ph);
     for(var i=0;i<d.empresas.length;i++){var o=document.createElement("option");o.value=d.empresas[i].id;o.textContent=d.empresas[i].razon_social;sel.appendChild(o)}
     llenarCat(d.catalogos);
-    el("form").style.display="block";
-  }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
+    irMenu();
+  });
+}
+el("btn_login").onclick=function(){
+  hideMsg();
+  var u=el("usuario").value.trim(), c=el("clave").value;
+  if(!u||!c){showMsg("Ingresá usuario y clave.",false);return}
+  el("btn_login").disabled=true;el("btn_login").textContent="Ingresando…";
+  api({accion:"login",usuario:u,clave:c}).then(function(d){
+    if(d.error){showMsg(d.error,false);return}
+    SESION=d.sesion;guardarSes(SESION);el("clave").value="";
+    return cargarMeta();
+  }).catch(function(e){if(e!=="vencida")showMsg("Error de conexión. Reintentá.",false)})
+    .then(function(){el("btn_login").disabled=false;el("btn_login").textContent="Ingresar"});
+};
+el("clave").addEventListener("keydown",function(e){if(e.key==="Enter")el("btn_login").click()});
+el("btn_salir").onclick=function(){
+  api({accion:"salir",sesion:SESION}).catch(function(){});
+  guardarSes("");SESION="";META=null;hideMsg();irLogin();
+};
+el("btn_nuevo").onclick=function(){
+  hideMsg();EDIT_ID=null;
+  el("empresa_wrap").style.display="block";el("empresa_id").value="";
+  llenarForm({});el("save").textContent="Guardar juicio";
+  ver("v_form");window.scrollTo(0,0);
+};
+el("btn_mios").onclick=function(){hideMsg();cargarMios()};
+var vs=document.querySelectorAll("[data-volver]");
+for(var i=0;i<vs.length;i++){vs[i].onclick=function(){hideMsg();irMenu()}}
+
+function cargarMios(){
+  el("lista").innerHTML='<div class="vacio">Cargando…</div>';ver("v_lista");
+  conSesion({accion:"mios"}).then(function(d){
+    if(d.error){showMsg(d.error,false);return}
+    MIOS=d.juicios||[];
+    var l=el("lista");l.innerHTML="";
+    if(!MIOS.length){l.innerHTML='<div class="vacio">Todavía no cargaste juicios.</div>';return}
+    for(var i=0;i<MIOS.length;i++){(function(j){
+      var it=document.createElement("div");it.className="item";
+      var l1=document.createElement("div");l1.className="l1";
+      var a=document.createElement("span");a.textContent="Nº "+j.nro+" · "+j.actor;
+      var c=document.createElement("span");c.className="chip";c.textContent=j.etapa||"";
+      l1.appendChild(a);l1.appendChild(c);
+      var l2=document.createElement("div");l2.className="l2";
+      l2.textContent=(j.juicios_empresas?j.juicios_empresas.razon_social:"")+" · Demandado $ "+fmtMonto(Number(j.monto_demandado||0))
+        +" · cargado el "+new Date(j.created_at).toLocaleDateString("es-AR");
+      it.appendChild(l1);it.appendChild(l2);
+      it.onclick=function(){abrirMio(j)};
+      l.appendChild(it);
+    })(MIOS[i])}
+  }).catch(function(e){if(e!=="vencida")showMsg("Error de conexión. Reintentá.",false)});
+}
+function abrirMio(j){
+  hideMsg();EDIT_ID=j.id;
+  el("empresa_wrap").style.display="none";
+  llenarForm(j);el("save").textContent="Guardar cambios";
+  el("emp").textContent="Juicio Nº "+j.nro+" · "+(j.juicios_empresas?j.juicios_empresas.razon_social:"");
+  ver("v_form");window.scrollTo(0,0);
 }
 
 el("save").onclick=function(){
-  var body={};
-  if(NUEVO){ body.nuevo=true; body.clave=NUEVO; body.empresa_id=el("empresa_id").value;
+  hideMsg();
+  var body=leerForm(); if(!body) return;
+  if(TOKEN){ body.token=TOKEN; }
+  else if(EDIT_ID){ body.accion="editar"; body.id=EDIT_ID; }
+  else { body.accion="alta"; body.empresa_id=el("empresa_id").value;
     if(!body.empresa_id){showMsg("Elegí una empresa.",false);return} }
-  else { body.token=TOKEN; }
-  if(!el("actor").value.trim()){showMsg("Ingresá el Actor (Apellido y Nombre).",false);return}
-  var anio=el("anio").value.trim();
-  if(anio && !(/^\d{4}$/.test(anio) && +anio>=1900 && +anio<=2100)){showMsg("El año tiene que ser de 4 cifras (ej: 2024).",false);el("anio").focus();return}
-  for(var i=0;i<CAMPOS.length;i++){var k=CAMPOS[i];var e=el(k);if(e){body[k]=e.value}}
-  for(var m=0;m<MONTOS.length;m++){var k2=MONTOS[m];var v=leerMonto(el(k2).value);
-    if(v!==null && isNaN(v)){showMsg("Revisá el monto marcado en rojo (ej: 1.500.000,50).",false);verMonto(k2);el(k2).focus();return}
-    body[k2]=(v===null?"":String(v))}
+  var txt=el("save").textContent;
   el("save").disabled=true;el("save").textContent="Guardando…";
-  fetch(FN,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-    .then(function(r){return r.json()}).then(function(d){
-      if(d.ok){
-        showMsg("✓ Guardado. ¡Gracias! El estudio ya recibió la información.",true);window.scrollTo(0,0);
-        if(NUEVO){ el("form").style.display="none"; }
-      } else {showMsg("No se pudo guardar: "+(d.error||"error"),false)}
-    }).catch(function(){showMsg("Error de conexión al guardar.",false)})
-    .then(function(){el("save").disabled=false;el("save").textContent="Guardar"});
+  (TOKEN?api(body):conSesion(body)).then(function(d){
+      if(!d.ok){showMsg("No se pudo guardar: "+(d.error||"error"),false);return}
+      if(TOKEN){showMsg("✓ Guardado. ¡Gracias! El estudio ya recibió la información.",true);return}
+      showMsg("✓ Juicio Nº "+d.nro+" guardado. El estudio ya lo tiene.",true);
+      irMenu();
+    }).catch(function(e){if(e!=="vencida")showMsg("Error de conexión al guardar.",false)})
+    .then(function(){el("save").disabled=false;el("save").textContent=txt});
 };
 
-if(TOKEN){ modoEditar(); }
-else if(NUEVO){ modoNuevo(); }
-else { showMsg("Link inválido: falta el parámetro de acceso.",false); }
+// ---------- arranque ----------
+if(TOKEN){
+  // Link puntual de un juicio: sin login, solo ese juicio.
+  el("form_volver").style.display="none";
+  fetch(FN+"?data=1&token="+encodeURIComponent(TOKEN)).then(function(r){return r.json()}).then(function(d){
+    if(d.error){showMsg("No se pudo abrir el juicio: "+d.error,false);return}
+    var j=d.juicio;
+    el("emp").textContent="Empresa: "+d.empresa+"  ·  Juicio Nº "+(j.nro||"-");
+    llenarCat(d.catalogos);llenarForm(j);
+    ver("v_form");
+    if(j.estado_carga==="completado"){showMsg("Este juicio ya fue enviado. Podés seguir editándolo y volver a guardar.",true)}
+  }).catch(function(){showMsg("Error de conexión. Reintentá.",false)});
+} else if(SESION){
+  el("emp").textContent="Cargando…";
+  cargarMeta().catch(function(e){if(e!=="vencida"){showMsg("Error de conexión. Reintentá.",false);irLogin()}});
+} else {
+  irLogin();
+}
 </script>
 </body></html>
