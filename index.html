@@ -602,7 +602,7 @@ el("b_export").onclick=function(){
 };
 
 // ---------- FORMULARIO WEB (= ui_compartir.py) ----------
-var MENSAJE="Hola {nombre}! Te paso el acceso para cargar los juicios laborales en el sistema de MR & Asociados.\n\n🔗 Entrá acá: {link}\n👤 Usuario: {usuario}\n🔑 Clave: {clave}\n\nDesde ahí podés cargar juicios nuevos y ver o corregir los que ya cargaste. Los montos se escriben normal, por ejemplo 1.500.000,50.\n\nCualquier duda me escribís. Gracias!";
+var MENSAJE="Hola {nombre}! Te paso el acceso al sistema de juicios laborales de MR & Asociados.\n\n🔗 Entrá acá: {link}\n👤 Usuario: {usuario}\n🔑 Clave: {clave}\n\nEs el mismo sistema Control de Juicios del estudio: ves el tablero y todos los juicios, y podés cargar, corregir o exportar a Excel. Los montos se escriben normal, por ejemplo 1.500.000,50.\n\nCualquier duda me escribís. Gracias!";
 function mensajeWA(nombre,usuario,clave){
   var p=(nombre||"").split(/\s+/).filter(function(x){return ["dr","dra","lic","abog","sr","sra"].indexOf(x.toLowerCase().replace(/\.$/,""))<0});
   return MENSAJE.replace("{nombre}",p[0]||"").replace("{link}",LINK).replace("{usuario}",usuario).replace("{clave}",clave).replace("Hola !","Hola!");
